@@ -1,0 +1,56 @@
+name: MoneyPilot 글감 수집
+
+# 언제 실행할지
+on:
+  push:
+    branches: [ main ]      # 코드를 고쳐서 저장(commit)하면 → 즉시 다시 실행
+  schedule:
+    - cron: '0 */6 * * *'   # 그리고 평소엔 6시간마다 자동 실행 (UTC 기준)
+  workflow_dispatch:          # '수동 실행' 버튼도 만들어둠 (테스트용)
+
+# Pages에 배포하려면 필요한 권한
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  collect-and-publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # 1) 내 코드 가져오기
+      - uses: actions/checkout@v4
+
+      # 2) 파이썬 설치
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # 3) 필요한 부품 설치
+      - name: 라이브러리 설치
+        run: pip install requests feedparser
+
+      # 4) 글감 수집 실행 (브라우저 안 띄우는 조용한 모드)
+      - name: 글감 수집
+        run: python glamcollector.py --silent
+
+      # 5) 결과 HTML을 웹페이지용 폴더에 index.html로 복사
+      - name: 웹페이지 준비
+        run: |
+          mkdir -p site
+          cp money_dashboard.html site/index.html
+
+      # 6) GitHub Pages로 배포
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
