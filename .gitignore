@@ -1,0 +1,16 @@
+# 자동으로 만들어지는 파일 (git에 올릴 필요 없음)
+money_dashboard.html
+
+# 루트에 있는 collect.yml 중복 파일 (진짜는 .github/workflows/collect.yml)
+collect.yml
+
+# Python 캐시
+__pycache__/
+*.pyc
+*.pyo
+
+# 편집기 임시 파일
+.vscode/settings.json
+
+# Claude Code 메모리 (내 PC 전용)
+.claude/
