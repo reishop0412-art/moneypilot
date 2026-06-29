@@ -14,3 +14,9 @@ __pycache__/
 
 # Claude Code 메모리 (내 PC 전용)
 .claude/
+
+# API 키 (절대 GitHub에 올리면 안 됨)
+.env
+
+# 생성된 블로그 초안 파일
+draft_*.txt
