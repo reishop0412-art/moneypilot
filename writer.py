@@ -35,29 +35,29 @@ except ImportError:
 # ---------------------------------------------------------------------
 RSS_SOURCES = [
     {
-        "name": "CFPB Newsroom",
+        "name": "CFPB",
         "url": "https://www.consumerfinance.gov/about-us/newsroom/feed/",
         "icon": "🏛️",
     },
     {
-        "name": "CFPB Blog",
-        "url": "https://www.consumerfinance.gov/about-us/blog/feed/",
-        "icon": "📝",
+        "name": "Federal Reserve",
+        "url": "https://www.federalreserve.gov/feeds/press_all.xml",
+        "icon": "🏦",
     },
     {
-        "name": "IRS News Releases",
-        "url": "https://www.irs.gov/pub/irs-utl/IRSNewswire.rss",
-        "icon": "💰",
+        "name": "FDIC",
+        "url": "https://public.govdelivery.com/topics/USFDIC_26/feed.rss",
+        "icon": "🏧",
     },
     {
-        "name": "IRS Tax Tips",
-        "url": "https://www.irs.gov/pub/irs-utl/IRSTaxTip.rss",
-        "icon": "💡",
+        "name": "SBA",
+        "url": "https://advocacy.sba.gov/feed/",
+        "icon": "💼",
     },
     {
-        "name": "Benefits.gov",
-        "url": "https://www.benefits.gov/rss",
-        "icon": "🎁",
+        "name": "SSA",
+        "url": "https://public.govdelivery.com/topics/USSSA_117/feed.rss",
+        "icon": "👴",
     },
 ]
 
@@ -74,7 +74,7 @@ def strip_html(text):
 def get_rss_feed(source):
     items = []
     try:
-        headers = {"User-Agent": "MoneyPilot/1.0 (finance research bot)"}
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"}
         raw = requests.get(source["url"], headers=headers, timeout=15)
         raw.raise_for_status()
         feed = feedparser.parse(raw.content)

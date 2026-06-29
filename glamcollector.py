@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 # =====================================================================
 #  MoneyPilot 글감 수집 대시보드
-#  - CFPB (소비자금융보호국) 뉴스룸 + 블로그
-#  - IRS (미국 국세청) 뉴스 + 세금 팁
-#  - Benefits.gov (정부 혜택 안내)
+#  - CFPB · Federal Reserve · FDIC · SBA · SSA
 #  ※ 모두 미국 정부 공식 사이트 — 저작권 문제 없음
 # =====================================================================
 
@@ -20,29 +18,29 @@ import feedparser
 # ---------------------------------------------------------------------
 RSS_SOURCES = [
     {
-        "name": "CFPB Newsroom",
+        "name": "CFPB",
         "url": "https://www.consumerfinance.gov/about-us/newsroom/feed/",
         "icon": "🏛️",
     },
     {
-        "name": "CFPB Blog",
-        "url": "https://www.consumerfinance.gov/about-us/blog/feed/",
-        "icon": "📝",
+        "name": "Federal Reserve",
+        "url": "https://www.federalreserve.gov/feeds/press_all.xml",
+        "icon": "🏦",
     },
     {
-        "name": "IRS News Releases",
-        "url": "https://www.irs.gov/pub/irs-utl/IRSNewswire.rss",
-        "icon": "💰",
+        "name": "FDIC",
+        "url": "https://public.govdelivery.com/topics/USFDIC_26/feed.rss",
+        "icon": "🏧",
     },
     {
-        "name": "IRS Tax Tips",
-        "url": "https://www.irs.gov/pub/irs-utl/IRSTaxTip.rss",
-        "icon": "💡",
+        "name": "SBA",
+        "url": "https://advocacy.sba.gov/feed/",
+        "icon": "💼",
     },
     {
-        "name": "Benefits.gov",
-        "url": "https://www.benefits.gov/rss",
-        "icon": "🎁",
+        "name": "SSA",
+        "url": "https://public.govdelivery.com/topics/USSSA_117/feed.rss",
+        "icon": "👴",
     },
 ]
 
@@ -61,7 +59,7 @@ def get_rss_feed(source):
     """RSS 피드 URL에서 기사 목록 가져오기"""
     items = []
     try:
-        headers = {"User-Agent": "MoneyPilot/1.0 (finance research bot)"}
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"}
         raw = requests.get(source["url"], headers=headers, timeout=15)
         raw.raise_for_status()
         feed = feedparser.parse(raw.content)
@@ -140,7 +138,7 @@ def build_html(all_data):
 </head>
 <body>
   <h1>🛩️ MoneyPilot 글감 대시보드</h1>
-  <div class="date">수집 시각: {today} | 소스: CFPB · IRS · Benefits.gov</div>
+  <div class="date">수집 시각: {today} | 소스: CFPB · Federal Reserve · FDIC · SBA · SSA</div>
 
   <input id="filter" placeholder="🔍 글감 검색 — 키워드를 입력하면 관련 글만 보여요"
          oninput="filterItems()">
