@@ -132,7 +132,60 @@ def collect_and_show():
 
 
 # ---------------------------------------------------------------------
-# 4) Notion에 빈 초안 페이지 생성
+# 4) Notion 페이지 본문 조립 (영어 원문 + 요약본 자리)
+# ---------------------------------------------------------------------
+def _text_blocks(text, block_type="paragraph"):
+    """긴 텍스트를 Notion 블록으로 변환 (한 블록당 2000자 제한 대응)."""
+    text = (text or "").strip()
+    if not text:
+        return []
+    chunks = [text[i:i+1900] for i in range(0, len(text), 1900)]
+    return [{
+        "object": "block",
+        "type": block_type,
+        block_type: {"rich_text": [{"type": "text", "text": {"content": c}}]},
+    } for c in chunks]
+
+
+def build_page_body(article):
+    """페이지 본문: 📄 영어 원문 + ✍️ 요약본(붙여넣기 자리)."""
+    original = article.get("summary") or "(RSS에 원문 요약이 없어요. 위 출처 링크에서 전체 원문을 확인하세요.)"
+
+    body = []
+    # --- 📄 영어 원문 섹션 ---
+    body.append({
+        "object": "block", "type": "heading_2",
+        "heading_2": {"rich_text": [{"type": "text", "text": {"content": "📄 English Source (영어 원문)"}}]},
+    })
+    body.extend(_text_blocks(original))
+    body.append({
+        "object": "block", "type": "paragraph",
+        "paragraph": {"rich_text": [{"type": "text",
+            "text": {"content": f"🔗 전체 원문 보기: {article['link']}", "link": {"url": article["link"]}}}]},
+    })
+
+    body.append({"object": "block", "type": "divider", "divider": {}})
+
+    # --- ✍️ 요약본 섹션 ---
+    body.append({
+        "object": "block", "type": "heading_2",
+        "heading_2": {"rich_text": [{"type": "text", "text": {"content": "✍️ Summary (요약본 — 6단계 템플릿)"}}]},
+    })
+    body.append({
+        "object": "block", "type": "callout",
+        "callout": {
+            "rich_text": [{"type": "text", "text": {
+                "content": "터미널에 출력된 프롬프트를 claude.ai에 붙여넣고, 나온 결과를 이 아래에 붙여넣으세요."
+            }}],
+            "icon": {"emoji": "📋"},
+            "color": "yellow_background",
+        },
+    })
+    return body
+
+
+# ---------------------------------------------------------------------
+# 5) Notion에 초안 페이지 생성
 # ---------------------------------------------------------------------
 def create_notion_draft(article):
     token = os.environ.get("NOTION_TOKEN")
@@ -165,19 +218,7 @@ def create_notion_draft(article):
                     "status": {"name": "초안"}
                 },
             },
-            children=[
-                {
-                    "object": "block",
-                    "type": "callout",
-                    "callout": {
-                        "rich_text": [{"type": "text", "text": {
-                            "content": "✍️ 아래에 claude.ai 결과를 붙여넣으세요."
-                        }}],
-                        "icon": {"emoji": "📋"},
-                        "color": "yellow_background",
-                    },
-                }
-            ],
+            children=build_page_body(article),
         )
 
         return page.get("url")
@@ -198,34 +239,36 @@ def print_claude_prompt(article):
     prompt = f"""Write a complete, engaging English blog post for an American audience.
 
 Topic: {article['title']}
-Source: {article['source']}
+Source: {article['source']} (official U.S. government)
 Reference URL: {article['link']}{summary_section}
 
-Requirements:
-- Target audience: Americans who want to use AI to improve their personal finances
-- Tone: Friendly, practical, conversational — like a smart friend giving advice
-- Blog theme: AI × personal finance (how AI tools help with money habits)
-- Length: 800–1,000 words
-- Structure:
-  # [SEO-optimized title]
+Audience: Americans looking to claim a benefit or save on taxes.
+Tone: Friendly, practical, conversational — like a smart friend explaining money.
+Length: 900–1,200 words. Plain English, no jargon. Ready to paste into WordPress.
+Do NOT copy the source text — rewrite everything in your own words.
 
-  [Hook paragraph — relatable money problem or surprising stat]
+Use EXACTLY this structure (keep the Markdown headings):
 
-  ## [Section 1 heading]
-  [Content]
+# How to [Get This Benefit / Save on Taxes] in 2026 — Full Guide
 
-  ## [Section 2 heading]
-  [Content]
+## 1. What is it?
+[One easy paragraph explaining it simply.]
 
-  ## [Section 3 heading]
-  [Content — include 3–5 actionable tips as a bullet list]
+## 2. Who qualifies?
+[Eligibility conditions as a bullet list.]
 
-  ## Final Thoughts
-  [Conclusion + call-to-action]
+## 3. How much can you get?
+[Dollar amounts as a Markdown table, e.g. income/family size vs amount.]
 
-- Plain English, no jargon
-- Do NOT plagiarize the source — use it as inspiration only
-- Ready to paste into WordPress
+## 4. How to apply
+[Step-by-step numbered instructions.]
+
+## 5. Common mistakes to avoid
+[Bullet list of mistakes people make.]
+
+## 6. What this means for you
+[YOUR analysis — this is the most important section. Give practical takeaways,
+who benefits most, and 2–3 concrete action steps the reader can take today.]
 
 Write the full post now."""
 
