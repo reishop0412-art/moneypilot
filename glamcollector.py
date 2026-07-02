@@ -83,6 +83,25 @@ def strip_html(text):
     return re.sub(r"<[^>]+>", "", text or "").strip()
 
 
+def translate_ko(text):
+    """영어 제목을 한국어로 번역 (무료 구글 번역, API 키 불필요).
+    실패하면 빈 문자열을 돌려줘서 대시보드가 멈추지 않게 한다."""
+    text = (text or "").strip()
+    if not text:
+        return ""
+    try:
+        r = requests.get(
+            "https://translate.googleapis.com/translate_a/single",
+            params={"client": "gtx", "sl": "en", "tl": "ko", "dt": "t", "q": text},
+            timeout=10,
+        )
+        r.raise_for_status()
+        data = r.json()
+        return "".join(seg[0] for seg in data[0] if seg[0])
+    except Exception:
+        return ""  # 번역 실패 시 조용히 넘어감
+
+
 def get_rss_feed(source):
     """RSS 피드 URL에서 기사 목록 가져오기.
     기본주소가 실패하면 url_fallbacks(있을 때만)를 차례로 시도한다.
@@ -106,6 +125,7 @@ def get_rss_feed(source):
                 if title:
                     items.append({
                         "title": title,
+                        "title_ko": translate_ko(title),  # 한글 번역 (실패 시 빈 값)
                         "link": link,
                         "summary": summary,
                         "source": source["name"],
@@ -143,11 +163,13 @@ def build_html(all_data):
         rows = ""
         for it in items:
             t = html_lib.escape(it["title"])
+            ko = html_lib.escape(it.get("title_ko", ""))
+            ko_html = f'<span class="ko">{ko}</span>' if ko else ""
             s = html_lib.escape(it.get("summary", ""))
             summary_html = f'<span class="summary">{s}</span>' if s else ""
             rows += (
                 f'<li><a href="{it["link"]}" target="_blank">{t}</a>'
-                f'{summary_html}</li>'
+                f'{ko_html}{summary_html}</li>'
             )
         if not rows:
             rows = '<li class="empty">결과 없음 (RSS 피드 확인 필요)</li>'
@@ -176,6 +198,8 @@ def build_html(all_data):
   li:last-child {{ border-bottom:none; }}
   a {{ color:#e2e8f0; text-decoration:none; }}
   a:hover {{ color:#38bdf8; }}
+  .ko {{ display:block; color:#38bdf8; font-size:13px; margin-top:3px;
+         line-height:1.4; }}
   .summary {{ display:block; color:#64748b; font-size:12px; margin-top:3px;
               line-height:1.4; }}
   .empty {{ color:#64748b; }}
