@@ -5,7 +5,7 @@
 #  - Notion에 초안 페이지 자동 생성 (제목·출처·날짜·상태)
 #  - claude.ai에 붙여넣을 프롬프트 출력
 #  ※ Anthropic API 키 불필요 — Claude Pro 구독으로 사용
-#  소스: CFPB · IRS · Benefits.gov (미국 정부 공식 사이트)
+#  소스: CFPB · Federal Reserve · FDIC · SBA · SSA (미국 정부 공식 사이트)
 # =====================================================================
 
 import os
@@ -15,6 +15,12 @@ import datetime
 
 import requests
 import feedparser
+
+# Windows 터미널에서 이모지 출력 시 에러 방지 (UTF-8 강제)
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 try:
     from dotenv import load_dotenv
@@ -99,7 +105,7 @@ def get_rss_feed(source):
 # 3) 글감 수집 → 중복 제거 → 번호 목록 출력
 # ---------------------------------------------------------------------
 def collect_and_show():
-    print("\n📡 글감 수집 중... (CFPB · IRS · Benefits.gov)\n")
+    print("\n📡 글감 수집 중... (CFPB · Federal Reserve · FDIC · SBA · SSA)\n")
     all_articles = []
 
     for source in RSS_SOURCES:

@@ -13,6 +13,12 @@ import html as html_lib
 import requests
 import feedparser
 
+# Windows 터미널에서 이모지 출력 시 에러 방지 (UTF-8 강제)
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 # ---------------------------------------------------------------------
 # 1) RSS 소스 목록 — 여기만 바꾸면 소스 추가/제거 가능
 # ---------------------------------------------------------------------
@@ -168,7 +174,7 @@ function filterItems() {{
 # 4) 메인 실행
 # ---------------------------------------------------------------------
 def main():
-    print("글감 수집 시작... (CFPB · IRS · Benefits.gov)")
+    print("글감 수집 시작... (CFPB · Federal Reserve · FDIC · SBA · SSA)")
     all_data = {}
 
     for source in RSS_SOURCES:
