@@ -48,6 +48,28 @@ RSS_SOURCES = [
         "url": "https://public.govdelivery.com/topics/USSSA_117/feed.rss",
         "icon": "👴",
     },
+    {
+        "name": "FTC",
+        "url": "https://www.ftc.gov/feeds/press-release-consumer-protection.xml",
+        "icon": "⚠️",
+        "category": "소비자경고",
+    },
+    {
+        "name": "VA",
+        "url": "https://news.va.gov/feed/",
+        "icon": "🎖️",
+        "category": "참전용사",
+    },
+    {
+        "name": "IRS",
+        "url": "https://public.govdelivery.com/topics/USIRS_t24647/feed.rss",
+        # 기본주소 실패 시 시도할 대체주소 (GovDelivery는 둘 중 하나가 맞음)
+        "url_fallbacks": [
+            "https://public.govdelivery.com/topics/USIRS_24647/feed.rss",
+        ],
+        "icon": "🧾",
+        "category": "세금",
+    },
 ]
 
 MAX_PER_SOURCE = 8  # 소스당 최대 기사 수
@@ -62,29 +84,42 @@ def strip_html(text):
 
 
 def get_rss_feed(source):
-    """RSS 피드 URL에서 기사 목록 가져오기"""
+    """RSS 피드 URL에서 기사 목록 가져오기.
+    기본주소가 실패하면 url_fallbacks(있을 때만)를 차례로 시도한다.
+    한 피드가 실패해도 예외를 잡아 그 피드만 건너뛰고 계속 진행한다."""
     items = []
-    try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"}
-        raw = requests.get(source["url"], headers=headers, timeout=15)
-        raw.raise_for_status()
-        feed = feedparser.parse(raw.content)
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"}
 
-        for entry in feed.entries[:MAX_PER_SOURCE]:
-            title = strip_html(entry.get("title", ""))
-            link = entry.get("link", "#")
-            summary = strip_html(entry.get("summary", ""))[:300]
-            if title:
-                items.append({
-                    "title": title,
-                    "link": link,
-                    "summary": summary,
-                    "source": source["name"],
-                    "icon": source["icon"],
-                })
-    except Exception as e:
-        print(f"  [{source['name']} 오류] {e}")
-    return items
+    # 시도할 주소 목록: 기본주소 + (있으면) 대체주소들
+    urls = [source["url"]] + source.get("url_fallbacks", [])
+
+    for url in urls:
+        try:
+            raw = requests.get(url, headers=headers, timeout=15)
+            raw.raise_for_status()
+            feed = feedparser.parse(raw.content)
+
+            for entry in feed.entries[:MAX_PER_SOURCE]:
+                title = strip_html(entry.get("title", ""))
+                link = entry.get("link", "#")
+                summary = strip_html(entry.get("summary", ""))[:300]
+                if title:
+                    items.append({
+                        "title": title,
+                        "link": link,
+                        "summary": summary,
+                        "source": source["name"],
+                        "icon": source["icon"],
+                        "category": source.get("category", ""),  # 라벨 (없으면 빈 값)
+                    })
+
+            if items:
+                return items  # 성공 → 대체주소는 시도하지 않음
+        except Exception as e:
+            # 어떤 주소에서 실패했는지 화면에 출력하고 다음 주소로 넘어감
+            print(f"  [{source['name']} 실패] {url} → {e} (건너뜀)")
+
+    return items  # 전부 실패하면 빈 목록
 
 
 # ---------------------------------------------------------------------
@@ -94,8 +129,17 @@ def build_html(all_data):
     today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     blocks = ""
 
+    # 소스 이름 -> {아이콘, 카테고리} 찾아보기 (카드가 비어도 라벨 표시하려고)
+    source_meta = {s["name"]: s for s in RSS_SOURCES}
+
     for source_name, items in all_data.items():
-        icon = items[0]["icon"] if items else "📄"
+        meta = source_meta.get(source_name, {})
+        icon = meta.get("icon") or (items[0]["icon"] if items else "📄")
+        category = meta.get("category", "")
+        badge = (
+            f'<span class="badge">{html_lib.escape(category)}</span>'
+            if category else ""
+        )
         rows = ""
         for it in items:
             t = html_lib.escape(it["title"])
@@ -108,7 +152,7 @@ def build_html(all_data):
         if not rows:
             rows = '<li class="empty">결과 없음 (RSS 피드 확인 필요)</li>'
         blocks += (
-            f'<div class="card"><h3>{icon} {html_lib.escape(source_name)}</h3>'
+            f'<div class="card"><h3>{icon} {html_lib.escape(source_name)}{badge}</h3>'
             f'<ul>{rows}</ul></div>'
         )
 
@@ -135,6 +179,8 @@ def build_html(all_data):
   .summary {{ display:block; color:#64748b; font-size:12px; margin-top:3px;
               line-height:1.4; }}
   .empty {{ color:#64748b; }}
+  .badge {{ display:inline-block; margin-left:8px; padding:2px 8px; font-size:11px;
+            border-radius:10px; background:#38bdf8; color:#0f172a; vertical-align:middle; }}
   #filter {{ width:100%; max-width:520px; box-sizing:border-box; padding:12px 16px;
              margin-bottom:8px; font-size:15px; border-radius:10px;
              border:1px solid #334155; background:#1e293b; color:#e2e8f0; }}
@@ -144,7 +190,7 @@ def build_html(all_data):
 </head>
 <body>
   <h1>🛩️ MoneyPilot 글감 대시보드</h1>
-  <div class="date">수집 시각: {today} | 소스: CFPB · Federal Reserve · FDIC · SBA · SSA</div>
+  <div class="date">수집 시각: {today} | 소스: CFPB · Federal Reserve · FDIC · SBA · SSA · FTC · VA · IRS</div>
 
   <input id="filter" placeholder="🔍 글감 검색 — 키워드를 입력하면 관련 글만 보여요"
          oninput="filterItems()">
